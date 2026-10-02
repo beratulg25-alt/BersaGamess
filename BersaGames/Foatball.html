@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>AETHARION FC</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+body{
+  margin:0;
+  background:#111;
+  color:white;
+  font-family:Arial,sans-serif;
+  overflow:hidden;
+}
+
+#game{
+  width:100vw;
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+canvas{
+  background:#16853b;
+  max-width:100vw;
+  max-height:100vh;
+  width:100vw;
+  height:auto;
+  border:3px solid white;
+}
+
+#controls{
+  position:fixed;
+  bottom:20px;
+  left:20px;
+  right:20px;
+  display:flex;
+  justify-content:space-between;
+  pointer-events:none;
+}
+
+.pad{
+  width:150px;
+  height:150px;
+  position:relative;
+  pointer-events:auto;
+}
+
+.btn{
+  position:absolute;
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,.7);
+  background:rgba(0,0,0,.45);
+  color:white;
+  font-size:20px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  touch-action:none;
+}
+
+.up{left:51px;top:0}
+.down{left:51px;bottom:0}
+.left{left:0;top:51px}
+.right{right:0;top:51px}
+
+.actions{
+  width:160px;
+  height:150px;
+  position:relative;
+  pointer-events:auto;
+}
+
+.shoot{
+  right:0;
+  top:15px;
+  width:70px;
+  height:70px;
+  background:rgba(220,30,30,.7);
+  font-size:15px;
+}
+
+.speed{
+  left:0;
+  bottom:10px;
+  width:60px;
+  height:60px;
+  background:rgba(30,100,220,.7);
+  font-size:12px;
+}
+
+#start{
+  position:fixed;
+  inset:0;
+  background:linear-gradient(135deg,#080808,#191919);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  z-index:5;
+}
+
+#start h1{
+  font-size:48px;
+  margin:5px;
+  color:#e62b2b;
+}
+
+#start p{
+  color:#bbb;
+}
+
+#start button{
+  margin-top:20px;
+  padding:15px 45px;
+  font-size:20px;
+  border:0;
+  border-radius:10px;
+  background:#e32626;
+  color:white;
+  font-weight:bold;
+}
+
+#info{
+  position:fixed;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:18px;
+  font-weight:bold;
+  background:rgba(0,0,0,.6);
+  padding:8px 18px;
+  border-radius:10px;
+  z-index:2;
+}
+</style>
+</head>
+
+<body>
+
+<div id="start">
+  <h1>AETHARION FC</h1>
+  <p>Mini Football • İlk Sürüm</p>
+  <button onclick="startGame()">MAÇA BAŞLA ⚽</button>
+</div>
+
+<div id="info">
+  AETHARION FC 0 - 0 RIVALS FC
+</div>
+
+<div id="game">
+<canvas id="canvas" width="1100" height="650"></canvas>
+</div>
+
+<div id="controls">
+
+  <div class="pad">
+    <div class="btn up" data-key="ArrowUp">▲</div>
+    <div class="btn down" data-key="ArrowDown">▼</div>
+    <div class="btn left" data-key="ArrowLeft">◀</div>
+    <div class="btn right" data-key="ArrowRight">▶</div>
+  </div>
+
+  <div class="actions">
+    <div class="btn shoot" data-key=" ">ŞUT</div>
+    <div class="btn speed" data-key="Shift">HIZ</div>
+  </div>
+
+</div>
+
+<script>
+
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+
+const W=1100;
+const H=650;
+
+let playing=false;
+let scoreA=0;
+let scoreB=0;
+let time=90;
+let lastTime=0;
+
+const keys={};
+
+document.addEventListener("keydown",e=>{
+  keys[e.key]=true;
+  if([" ","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key))
+    e.preventDefault();
+});
+
+document.addEventListener("keyup",e=>{
+  keys[e.key]=false;
+});
+
+document.querySelectorAll(".btn").forEach(btn=>{
+  const key=btn.dataset.key;
+
+  btn.addEventListener("pointerdown",e=>{
+    e.preventDefault();
+    keys[key]=true;
+  });
+
+  btn.addEventListener("pointerup",e=>{
+    e.preventDefault();
+    keys[key]=false;
+  });
+
+  btn.addEventListener("pointercancel",()=>{
+    keys[key]=false;
+  });
+
+  btn.addEventListener("pointerleave",()=>{
+    keys[key]=false;
+  });
+});
+
+const player={
+  x:270,
+  y:325,
+  r:18,
+  speed:3.4,
+  sprint:5.7,
+  color:"#eeeeee"
+};
+
+const ball={
+  x:550,
+  y:325,
+  r:10,
+  vx:0,
+  vy:0
+};
+
+const enemies=[
+  {x:820,y:210,r:18,vx:0,vy:0},
+  {x:820,y:440,r:18,vx:0,vy:0},
+  {x:720,y:325,r:18,vx:0,vy:0}
+];
+
+const teammates=[
+  {x:370,y:190,r:18},
+  {x:370,y:460,r:18},
+  {x:470,y:325,r:18}
+];
+
+function startGame(){
+  document.getElementById("start").style.display="none";
+  playing=true;
+  lastTime=performance.now();
+  requestAnimationFrame(loop);
+}
+
+function resetPositions(){
+
+  player.x=270;
+  player.y=325;
+
+  ball.x=550;
+  ball.y=325;
+  ball.vx=0;
+  ball.vy=0;
+
+  enemies[0].x=820;
+  enemies[0].y=210;
+
+  enemies[1].x=820;
+  enemies[1].y=440;
+
+  enemies[2].x=720;
+  enemies[2].y=325;
+}
+
+function update(dt){
+
+  if(!playing)return;
+
+  time-=dt;
+
+  if(time<=0){
+    time=0;
+    playing=false;
+    setTimeout(()=>{
+      alert(
+        "MAÇ BİTTİ!\n\nAETHARION FC "+
+        scoreA+" - "+scoreB+" RIVALS FC"
+      );
+      location.reload();
+    },100);
+    return;
+  }
+
+  let dx=0;
+  let dy=0;
+
+  if(keys["ArrowUp"]||keys["w"]||keys["W"])dy--;
+  if(keys["ArrowDown"]||keys["s"]||keys["S"])dy++;
+  if(keys["ArrowLeft"]||keys["a"]||keys["A"])dx--;
+  if(keys["ArrowRight"]||keys["d"]||keys["D"])dx++;
+
+  if(dx||dy){
+
+    const len=Math.hypot(dx,dy);
+    dx/=len;
+    dy/=len;
+
+    let sp=keys["Shift"]?player.sprint:player.speed;
+
+    player.x+=dx*sp;
+    player.y+=dy*sp;
+  }
+
+  player.x=Math.max(35,Math.min(W-35,player.x));
+  player.y=Math.max(45,Math.min(H-45,player.y));
+
+  // Topla
+  const dist=Math.hypot(player.x-ball.x,player.y-ball.y);
+
+  if(dist<42){
+
+    ball.x=player.x;
+    ball.y=player.y;
+
+    if(keys[" "]){
+      shoot();
+      keys[" "]=false;
+    }
+
+  }else{
+
+    ball.x+=ball.vx;
+    ball.y+=ball.vy;
+
+    ball.vx*=0.985;
+    ball.vy*=0.985;
+  }
+
+  // Saha sınırları
+  if(ball.y<40){
+    ball.y=40;
+    ball.vy*=-.7;
+  }
+
+  if(ball.y>H-40){
+    ball.y=H-40;
+    ball.vy*=-.7;
+  }
+
+  // Rakip AI
+  enemies.forEach(e=>{
+
+    let targetX=ball.x;
+    let targetY=ball.y;
+
+    let dx=targetX-e.x;
+    let dy=targetY-e.y;
+
+    let d=Math.hypot(dx,dy);
+
+    if(d>5){
+      e.x+=dx/d*1.35;
+      e.y+=dy/d*1.35;
+    }
+
+    if(Math.hypot(e.x-ball.x,e.y-ball.y)<28){
+
+      ball.vx=-2.5;
+      ball.vy=(Math.random()-.5)*4;
+    }
+  });
+
+  // Gol
+  if(ball.x<5 && ball.y>235 && ball.y<415){
+    scoreB++;
+    resetPositions();
+  }
+
+  if(ball.x>W-5 && ball.y>235 && ball.y<415){
+    scoreA++;
+    resetPositions();
+  }
+
+  // Top kale dışına çıkmasın
+  if(ball.x<0)ball.x=10;
+  if(ball.x>W)ball.x=W-10;
+
+  updateInfo();
+}
+
+function shoot(){
+
+  let targetX=W;
+  let targetY=325;
+
+  let dx=targetX-ball.x;
+  let dy=targetY-ball.y;
+
+  let d=Math.hypot(dx,dy);
+
+  ball.vx=dx/d*10;
+  ball.vy=dy/d*10;
+
+  ball.x+=ball.vx;
+  ball.y+=ball.vy;
+}
+
+function updateInfo(){
+
+  document.getElementById("info").textContent=
+    "AETHARION FC "+scoreA+
+    " - "+scoreB+
+    " RIVALS FC   |   "+
+    Math.ceil(time)+" sn";
+}
+
+function drawField(){
+
+  // Zemin
+  ctx.fillStyle="#16853b";
+  ctx.fillRect(0,0,W,H);
+
+  // Çim çizgileri
+  for(let x=0;x<W;x+=110){
+    ctx.fillStyle="rgba(255,255,255,.025)";
+    ctx.fillRect(x,0,55,H);
+  }
+
+  ctx.strokeStyle="white";
+  ctx.lineWidth=5;
+
+  // Dış çizgi
+  ctx.strokeRect(25,25,W-50,H-50);
+
+  // Orta çizgi
+  ctx.beginPath();
+  ctx.moveTo(W/2,25);
+  ctx.lineTo(W/2,H-25);
+  ctx.stroke();
+
+  // Orta yuvarlak
+  ctx.beginPath();
+  ctx.arc(W/2,H/2,90,0,Math.PI*2);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(W/2,H/2,6,0,Math.PI*2);
+  ctx.fillStyle="white";
+  ctx.fill();
+
+  // Sol ceza alanı
+  ctx.strokeRect(25,180,150,290);
+
+  // Sağ ceza alanı
+  ctx.strokeRect(W-175,180,150,290);
+
+  // Kaleler
+  ctx.strokeRect(0,235,25,180);
+  ctx.strokeRect(W-25,235,25,180);
+
+  // Kale ağları
+  ctx.strokeStyle="rgba(255,255,255,.35)";
+  ctx.lineWidth=2;
+
+  for(let y=240;y<415;y+=15){
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(25,y);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(W-25,y);
+    ctx.lineTo(W,y);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle="white";
+  ctx.lineWidth=5;
+}
+
+function drawPlayer(p,color,label){
+
+  ctx.beginPath();
+  ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+
+  ctx.fillStyle=color;
+  ctx.fill();
+
+  ctx.strokeStyle="#111";
+  ctx.lineWidth=3;
+  ctx.stroke();
+
+  ctx.fillStyle="#111";
+  ctx.font="bold 12px Arial";
+  ctx.textAlign="center";
+  ctx.fillText(label,p.x,p.y+4);
+}
+
+function draw(){
+
+  drawField();
+
+  // Takım arkadaşları
+  teammates.forEach(t=>{
+    drawPlayer(t,"#e8e8e8","A");
+  });
+
+  // Rakipler
+  enemies.forEach((e,i)=>{
+    drawPlayer(e,"#e63232","R");
+  });
+
+  // Oyuncu
+  drawPlayer(player,"#ffffff","10");
+
+  // Top
+  ctx.beginPath();
+  ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
+  ctx.fillStyle="white";
+  ctx.fill();
+
+  ctx.strokeStyle="#111";
+  ctx.lineWidth=2;
+  ctx.stroke();
+
+  // Top üzeri küçük desen
+  ctx.fillStyle="#111";
+  ctx.beginPath();
+  ctx.arc(ball.x,ball.y,3,0,Math.PI*2);
+  ctx.fill();
+
+}
+
+function loop(now){
+
+  let dt=(now-lastTime)/1000;
+  lastTime=now;
+
+  if(dt>0.05)dt=.05;
+
+  update(dt);
+  draw();
+
+  requestAnimationFrame(loop);
+}
+
+draw();
+
+</script>
+
+</body>
+</html>

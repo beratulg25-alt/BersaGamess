@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>BersaGames</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #080808, #171717);
+    color: white;
+    padding: 30px 18px;
+}
+
+.container {
+    max-width: 1100px;
+    margin: auto;
+}
+
+header {
+    text-align: center;
+    padding: 35px 10px 45px;
+}
+
+.logo {
+    font-size: clamp(42px, 8vw, 76px);
+    font-weight: 900;
+    letter-spacing: 3px;
+}
+
+.logo span {
+    color: #e50914;
+}
+
+.subtitle {
+    margin-top: 12px;
+    color: #aaa;
+    font-size: 18px;
+}
+
+.games {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 22px;
+}
+
+.game {
+    display: block;
+    text-decoration: none;
+    color: white;
+    background: #202020;
+    border: 1px solid #333;
+    border-radius: 18px;
+    padding: 28px 20px;
+    min-height: 190px;
+    transition: 0.2s;
+}
+
+.game:hover {
+    transform: translateY(-6px);
+    border-color: #e50914;
+    background: #292929;
+}
+
+.icon {
+    font-size: 55px;
+    margin-bottom: 18px;
+}
+
+.game h2 {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.game p {
+    color: #aaa;
+}
+
+footer {
+    text-align: center;
+    color: #666;
+    margin-top: 50px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<header>
+    <div class="logo">Bersa<span>Games</span></div>
+    <div class="subtitle">Oyununu seç ve hemen oyna 🎮</div>
+</header>
+
+<section class="games">
+
+    <a class="game" href="bilardo.html">
+        <div class="icon">🎱</div>
+        <h2>Bilardo</h2>
+        <p>Bilardo oyununu oyna.</p>
+    </a>
+
+    <a class="game" href="Foatball.html">
+        <div class="icon">⚽</div>
+        <h2>Football</h2>
+        <p>Futbol oyununu oyna.</p>
+    </a>
+
+    <a class="game" href="Mysterious Roulette.html">
+        <div class="icon">🎰</div>
+        <h2>Mysterious Roulette</h2>
+        <p>Roulette oyununu aç.</p>
+    </a>
+
+    <a class="game" href="Snakeio.html">
+        <div class="icon">🐍</div>
+        <h2>Snakeio</h2>
+        <p>Yılan oyununu oyna.</p>
+    </a>
+
+</section>
+
+<footer>
+    © 2026 BersaGames
+</footer>
+
+</div>
+
+</body>
+</html>
